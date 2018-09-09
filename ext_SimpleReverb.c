@@ -17,14 +17,15 @@ struct {
     sf_reverb_state_st reverbState;
     sf_sample_st* reverbInputFrame;
     sf_sample_st* reverbOutputFrame;
+    jboolean validEnv;
 } SrContext;
-
 
 void srInit(struct GlobalSettings *settings){
     SrContext.reverbInputFrame = malloc(sizeof(sf_sample_st) * settings->inputFrameSize);
     SrContext.reverbOutputFrame = malloc(sizeof(sf_sample_st) * settings->inputFrameSize);
-    jfloat s[2] = {-1.f,0.f};
-    srSetEnvironment(settings, s); // set default env
+    // jfloat s[2] = {-1.f,0.f};
+    SrContext.validEnv = false;
+    // srSetEnvironment(settings, s); // set default env
 }
 
 void srDestroy(struct GlobalSettings *settings){
@@ -32,11 +33,19 @@ void srDestroy(struct GlobalSettings *settings){
     free( SrContext.reverbOutputFrame);
 }
 
+jboolean srHasValidEnvironment(struct GlobalSettings *settings){
+    return SrContext.validEnv;
+}
 
 void srSetEnvironment(struct GlobalSettings *settings,jfloat *env){
-        if(env[0]==-1){
-            sf_presetreverb(&SrContext.reverbState, settings->sampleRate,  (int)env[1]);
-            return;
+    if(env[0]==-2){
+        SrContext.validEnv = false;
+        return;
+    }
+    SrContext.validEnv = true;
+    if (env[0] == -1) {
+        sf_presetreverb(&SrContext.reverbState, settings->sampleRate, (int)env[1]);
+        return;
         }
         sf_advancereverb(&SrContext.reverbState,
                 settings->sampleRate,             // input sample rate (samples per second)
