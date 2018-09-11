@@ -21,8 +21,8 @@ struct {
 } SrContext;
 
 void srInit(struct GlobalSettings *settings){
-    SrContext.reverbInputFrame = malloc(sizeof(sf_sample_st) * settings->inputFrameSize);
-    SrContext.reverbOutputFrame = malloc(sizeof(sf_sample_st) * settings->inputFrameSize);
+    SrContext.reverbInputFrame = malloc(sizeof(sf_sample_st) * settings->frameSize);
+    SrContext.reverbOutputFrame = malloc(sizeof(sf_sample_st) * settings->frameSize);
     // jfloat s[2] = {-1.f,0.f};
     SrContext.validEnv = false;
     // srSetEnvironment(settings, s); // set default env
@@ -44,10 +44,10 @@ void srSetEnvironment(struct GlobalSettings *settings,jfloat *env){
     }
     SrContext.validEnv = true;
     if (env[0] == -1) {
-        sf_presetreverb(&SrContext.reverbState, settings->sampleRate, (int)env[1]);
+        sf_presetreverb(&SrContext.reverbState, settings->sampleRate, (jint)env[1]);
         return;
-        }
-        sf_advancereverb(&SrContext.reverbState,
+    }
+    sf_advancereverb(&SrContext.reverbState,
                 settings->sampleRate,             // input sample rate (samples per second)
                 env[0], // how much to oversample [1 to 4]
                 env[1],       // early reflection amount [0 to 1]
@@ -66,7 +66,7 @@ void srSetEnvironment(struct GlobalSettings *settings,jfloat *env){
                 env[14],      // Hz, lowpass cutoff for output [200 to 18000]
                 env[15],           // reverb time decay [0.1 to 30]
                 env[16]           // seconds, amount of delay [-0.5 to 0.5]
-        );
+    );
 }
 
  static inline void srInterleavedToSfFrame(struct GlobalSettings *settings,jfloat *frame,sf_sample_st *store){
@@ -74,9 +74,9 @@ void srSetEnvironment(struct GlobalSettings *settings,jfloat *env){
         printf("Sfx: Error, this works only with stereo audio \n");
     }
     jint ii = 0;
-    for(jint i=0;i<settings->inputFrameSize;i++){
+    for(jint i=0;i<settings->frameSize;i++){
         store[i].L = frame[ii++];
-	store[i].R = frame[ii++];	
+	    store[i].R = frame[ii++];	
     }
 }
 
@@ -85,9 +85,9 @@ static inline  void srSfToInterleavedFrame(struct GlobalSettings *settings,sf_sa
         printf("Sfx: Error, this works only with stereo audio \n");
     }
     jint ii = 0;
-    for (jint i = 0; i < settings->inputFrameSize; i++) {
+    for (jint i = 0; i < settings->frameSize; i++) {
         store[ii++] = frame[i].L;
-	store[ii++] = frame[i].R;
+	    store[ii++] = frame[i].R;
     }
 }
 
@@ -99,14 +99,14 @@ static inline  void srSfToInterleavedFrame(struct GlobalSettings *settings,sf_sa
 void srApplyReverb(struct GlobalSettings *settings,jfloat *inframe,jfloat *outframe){
     srInterleavedToSfFrame(settings, inframe, SrContext.reverbInputFrame);
     #ifndef TEST_CONVERSION
-        sf_reverb_process(&SrContext.reverbState, settings->inputFrameSize, SrContext.reverbInputFrame, SrContext.reverbOutputFrame);
+        sf_reverb_process(&SrContext.reverbState, settings->frameSize, SrContext.reverbInputFrame, SrContext.reverbOutputFrame);
         srSfToInterleavedFrame(settings, SrContext.reverbOutputFrame, outframe);
     #else
         srSfToInterleavedFrame(settings, SrContext.reverbInputFrame, outframe);
     #endif
         #ifdef TEST_COPY_INPUT
                 jint ii = 0;
-                for (jint i = 0; i < settings->inputFrameSize; i++) {
+                for (jint i = 0; i < settings->frameSize; i++) {
                 outframe[ii]=inframe[ii++];
                         outframe[ii]=inframe[ii++];
 
